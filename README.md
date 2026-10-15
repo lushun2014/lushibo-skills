@@ -2,34 +2,115 @@
 
 > 路世博 codeX 版技能包 —— 51 个可加载 skill，覆盖逆向工程、渗透红队、漏洞利用、恶意代码、蓝队防御、游戏安全、工程环境、商业变现、内容创作与生活成长。
 
-- **版本**：1.0.0（2026-10-15）
+- **版本**：1.1.0（2026-10-15）
 - **skill 数**：51 个顶层 skill ＋ 1 个嵌套 skill（`pentest-tools/src-hunter`）
 - **共享资产**：`scripts/`、`routing.md`、`tool-index.md`、`PACKAGE.json`
+- **已适配运行时**：Codex CLI · dsh（DeepSeek CLI） · Hermes Agent · 其他 Agent Skills 运行时
 
 ---
 
 ## 这是什么
 
-一套面向 CLI Agent（codex / Claude Code / Hermes 等支持 `skills/` 目录的运行时）的**程序化知识包**。
+一套面向 CLI Agent（Codex / dsh / Hermes / Claude Code 等支持 `skills/` 目录的运行时）的**程序化知识包**。
 每个 skill 是一个独立目录，目录内 `SKILL.md` 带 YAML frontmatter（`name` + `description`），
 按「触发条件 / 执行步骤 / 交付物 / 验证方式」四段组织；重活再挂 `references/`（参考资料）与 `scripts/`（可执行脚本）。
 
-## 怎么用
+## 安装与使用（多运行时）
 
-把整个仓库放进运行时的 skills 目录即可（以 codex 为例）：
+每个 skill 都是「一个目录 + 一个 `SKILL.md`」的通用结构，凡按此约定读取技能的运行时都能直接用。
+差别只在**技能目录在哪**和**是否分层**：
+
+| 运行时 | 技能目录 | 目录结构 | 发现方式 |
+| :--- | :--- | :--- | :--- |
+| Codex CLI | `~/.codex/skills/` | 平铺 `skills/<skill>/SKILL.md` | `~/.codex/AGENTS.md`（人格与路由层）按 `skills/…` 相对路径引用 |
+| dsh（DeepSeek CLI） | `~/.dsh/skills/` | 平铺 `skills/<skill>/SKILL.md` | `@deepseek-ai/dsh-skill-filesystem` 插件扫描，默认根 `user-dsh` = `<dshHome>/skills` |
+| Hermes Agent | `$HERMES_HOME/skills/` | 可分层 `skills/<分类>/<skill>/SKILL.md` | 递归查找 `SKILL.md`，`.git` 等目录自动跳过 |
+| Claude Code 及其他 Agent Skills 运行时 | `~/.claude/skills/` 等 | 平铺 | 读取 `SKILL.md` 的 frontmatter |
+
+Windows 上 `~` 即 `C:\Users\<你>`：Codex 用 `C:\Users\<你>\.codex\skills\`，
+dsh 用 `C:\Users\<你>\.dsh\skills\`，Hermes 用 `%LOCALAPPDATA%\hermes\skills\`。
+
+### 通用装法（推荐：克隆一份，再往各运行时同步）
 
 ```bash
+# 1) 先克隆到 home 下，不占用任何运行时的技能目录
+git clone https://github.com/lushun2014/lushibo-skills.git ~/.lushibo-skills
+
+# 2) 以后只拉增量
+cd ~/.lushibo-skills && git pull --ff-only
+```
+
+再用下面任一运行时的命令同步。同步只复制 skill 目录、不带 `.git`，各运行时的技能目录始终干净。
+
+### Codex CLI
+
+```bash
+# 技能目录为空时，直接克隆进去
 git clone https://github.com/lushun2014/lushibo-skills.git ~/.codex/skills
+
+# 已有内容时，从本地克隆同步（幂等覆盖）
+mkdir -p ~/.codex/skills
+cp -r ~/.lushibo-skills/*/ ~/.codex/skills/
+cp ~/.lushibo-skills/SKILL.md ~/.lushibo-skills/routing.md ~/.lushibo-skills/tool-index.md ~/.codex/skills/
 ```
 
-已有目录时用增量拉取：
+Codex 的人格与触发层是 `~/.codex/AGENTS.md`，它按 `skills/lushibo-xxx/SKILL.md`
+这样的相对路径引用技能，所以三份根文件（`SKILL.md` / `routing.md` / `tool-index.md`）要一起放进去。
+
+### dsh（DeepSeek CLI）
 
 ```bash
-cd ~/.codex/skills && git pull --ff-only
+mkdir -p ~/.dsh/skills
+cp -r ~/.lushibo-skills/*/ ~/.dsh/skills/
 ```
+
+dsh 通过 `@deepseek-ai/dsh-skill-filesystem` 插件发现技能，默认根之一是
+`user-dsh`（rank 400）= `<dshHome>/skills`，所以 `~/.dsh/skills` 默认就会被扫描。
+要把技能放到别处，在 `~/.dsh/profiles/<profile>/cordis.patch.yml` 里追加：
+
+```yaml
+- id: skill-filesystem
+  name: '@deepseek-ai/dsh-skill-filesystem'
+  config:
+    includeDefaultRoots: true
+    customSkillDirs:
+      - 'C:\Users\<你>\.dsh\skills'
+    watch: true
+```
+
+> id-targeted patch **不做深合并**，会整体替换被匹配插件的 config，
+> 所以 `includeDefaultRoots` 与 `watch` 要一并写全。
+
+两个坑：
+
+- `~/.dsh/skills` 里若已有另一套同源技能（例如 `seagull-*` 命名的那份），
+  两套会同时被扫描、触发词重叠，建议只留一套。
+- `description` 里含未加引号的 `": "` 会让 YAML 解析失败，dsh 会**静默丢弃**该 skill。
+  本仓库全部 `description` 均已加引号包裹，可直接用。
+
+### Hermes Agent
+
+```bash
+# POSIX / git-bash：作为一个分类目录克隆进去
+git clone https://github.com/lushun2014/lushibo-skills.git \
+  ~/.hermes/skills/lushibo
+```
+
+```powershell
+# Windows PowerShell（默认 HERMES_HOME = %LOCALAPPDATA%\hermes）
+git clone https://github.com/lushun2014/lushibo-skills.git `
+  "$env:LOCALAPPDATA\hermes\skills\lushibo"
+```
+
+Hermes 是递归扫描 `SKILL.md` 的，技能落在 `skills/lushibo/<skill>/SKILL.md` 即可被识别，
+仓库自带的 `.git` 会被自动跳过，不会污染技能列表。装完重启会话生效，无需额外配置。
+嵌套 skill 也会被一并识别（`pentest-tools/src-hunter` 会单独出现在技能列表里）。
+
+### 装完怎么用
 
 进入任务前先读 `SKILL.md`（总控路由索引），再按 `routing.md` 定位目标 skill；
-工具路径一律查 `tool-index.md`，缺失工具用 `scripts/bootstrap-reverse.ps1`（Windows）或 `scripts/bootstrap-reverse.sh`（POSIX）自举。
+工具路径一律查 `tool-index.md`，缺失工具用 `scripts/bootstrap-reverse.ps1`（Windows）
+或 `scripts/bootstrap-reverse.sh`（POSIX）自举。
 
 ---
 

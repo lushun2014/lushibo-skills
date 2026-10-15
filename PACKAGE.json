@@ -1,6 +1,6 @@
 {
   "name": "lushibo-skills",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "generated": "2026-10-15",
   "description": "路世博 codeX 版技能包：51 个顶层 skill + 1 个嵌套 skill，覆盖逆向、渗透、利用、恶意代码、蓝队、游戏安全、工程、商业、内容与生活。",
   "skills": [
