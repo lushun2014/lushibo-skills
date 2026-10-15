@@ -1,0 +1,4 @@
+interface:
+  display_name: "Lushibo Lab"
+  short_description: "Reproducible security research cases and evidence workspaces"
+  default_prompt: "Use $lushibo-lab to create a reproducible lab case for this technical research task."

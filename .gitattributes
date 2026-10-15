@@ -1,0 +1,16 @@
+# 统一换行：仓库内一律存 LF，检出时按平台自动转换
+* text=auto eol=lf
+
+# 明确二进制资产，禁止换行转换
+*.keystore binary
+*.png binary
+*.jpg binary
+*.svg text eol=lf
+*.ps1 text eol=crlf
+*.bat text eol=crlf
+*.sh text eol=lf
+*.md text eol=lf
+*.json text eol=lf
+*.yaml text eol=lf
+*.yml text eol=lf
+*.py text eol=lf

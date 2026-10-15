@@ -1,0 +1,17 @@
+# 系统 / 编辑器
+Thumbs.db
+desktop.ini
+.DS_Store
+*.swp
+*~
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+
+# 本地临时产物
+*.log
+tmp/
+out/
+.env
